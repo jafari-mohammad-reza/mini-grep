@@ -1,18 +1,31 @@
 mod search;
-
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use std::error::Error;
 use std::{env, fs};
+use std::io::Write;
 use crate::search::search::{search, search_case_insensitive};
 
-pub fn run(config:Config) -> Result<() , Box<dyn Error>>{
-    let content:String = fs::read_to_string(config.filename)?;
+pub fn run(config:Config) -> Result<(), Box<dyn Error>>{
+    let content: String = fs::read_to_string(config.filename)?;
+    let stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut stdout = stdout.lock();
+    let mut color_spec = ColorSpec::new();
+    color_spec.set_fg(Some(Color::Blue)).set_bold(true);
     let results = if config.case_sensitive {
-         search_case_insensitive(&config.query , &content)
-    } else{
-        search(&config.query , &content)
+        search_case_insensitive(&config.query, &content)
+    } else {
+        search(&config.query, &content)
     };
-    for result in results{
-        println!("{}" , result)
+    for line in results {
+        let colored_line = line.replacen(&config.query, &format!(
+            "{}{}{}",
+            "\x1B[33m", // ANSI escape code to set the color to orange
+            &config.query,
+            "\x1B[0m" // ANSI escape code to reset the color
+        ), 1);
+        stdout.set_color(&color_spec)?;
+        writeln!(stdout, "{}", colored_line)?;
+        stdout.reset()?;
     }
     Ok(())
 }
