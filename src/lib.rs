@@ -1,15 +1,28 @@
+mod search;
+
 use std::error::Error;
-use std::fs;
+use std::{env, fs};
+use crate::search::search::{search, search_case_insensitive};
 
 pub fn run(config:Config) -> Result<() , Box<dyn Error>>{
     let content:String = fs::read_to_string(config.filename)?;
-    println!("{} \n" , content);
+    let results = if config.case_sensitive {
+         search_case_insensitive(&config.query , &content)
+    } else{
+        search(&config.query , &content)
+    };
+    for result in results{
+        println!("{}" , result)
+    }
     Ok(())
 }
 
+
+
 pub struct Config {
     pub query:String,
-    pub filename:String
+    pub filename:String,
+    pub case_sensitive:bool,
 }
 impl Config {
     pub fn new(args:&[String]) ->  Result<Config , &str> {
@@ -18,6 +31,7 @@ impl Config {
         }
         let query : String = args[1].clone();
         let filename : String = args[2].clone();
-        Ok(Config {query,filename})
+        let case_sensitive = env::args().any(|arg| arg == "--insensitive");
+        Ok(Config {query,filename, case_sensitive })
     }
 }
